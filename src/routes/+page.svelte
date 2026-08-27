@@ -15,37 +15,45 @@
 	<meta name="description" content={m.app_subtitle()} />
 </svelte:head>
 
-<div class="min-h-screen bg-base-200">
-	<header class="mx-auto max-w-3xl px-4 pt-10 pb-6 text-center">
-		<div class="mb-2 flex justify-end gap-1">
-			{#each locales as locale (locale)}
-				<a
-					href={resolve(localizeHref(page.url.pathname, { locale }) as Path)}
-					class="btn btn-ghost uppercase btn-xs"
-					class:btn-active={locale === getLocale()}>{locale}</a
+<div class="bg-base-200 min-h-screen">
+	<header class="bg-base-100 border-base-300 border-b">
+		<div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 lg:px-8">
+			<div class="mr-auto">
+				<h1 class="text-xl font-bold tracking-tight">{m.app_title()}</h1>
+				<p class="text-base-content/60 mt-0.5 hidden max-w-2xl text-sm sm:block">
+					{m.app_subtitle()}
+				</p>
+			</div>
+
+			<div role="tablist" class="tabs tabs-box tabs-sm sm:tabs-md">
+				<button
+					role="tab"
+					class="tab"
+					class:tab-active={tab === 'checker'}
+					onclick={() => (tab = 'checker')}>{m.tab_checker()}</button
 				>
-			{/each}
+				<button
+					role="tab"
+					class="tab"
+					class:tab-active={tab === 'composer'}
+					onclick={() => (tab = 'composer')}>{m.tab_composer()}</button
+				>
+			</div>
+
+			<div class="join">
+				{#each locales as locale (locale)}
+					<a
+						href={resolve(localizeHref(page.url.pathname, { locale }) as Path)}
+						class="btn join-item btn-sm uppercase {locale === getLocale()
+							? 'btn-neutral'
+							: 'btn-ghost'}">{locale}</a
+					>
+				{/each}
+			</div>
 		</div>
-		<h1 class="text-3xl font-bold">{m.app_title()}</h1>
-		<p class="mx-auto mt-2 max-w-xl text-sm text-base-content/70">{m.app_subtitle()}</p>
 	</header>
 
-	<main class="mx-auto max-w-3xl px-4 pb-16">
-		<div role="tablist" class="tabs tabs-box mb-6 justify-center">
-			<button
-				role="tab"
-				class="tab"
-				class:tab-active={tab === 'checker'}
-				onclick={() => (tab = 'checker')}>{m.tab_checker()}</button
-			>
-			<button
-				role="tab"
-				class="tab"
-				class:tab-active={tab === 'composer'}
-				onclick={() => (tab = 'composer')}>{m.tab_composer()}</button
-			>
-		</div>
-
+	<main class="mx-auto max-w-7xl px-4 py-8 lg:px-8">
 		{#if tab === 'checker'}
 			<CertChecker />
 		{:else}

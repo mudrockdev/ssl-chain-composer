@@ -26,7 +26,7 @@
 
 <textarea
 	bind:value
-	class="textarea-bordered textarea h-48 w-full font-mono text-xs leading-relaxed"
+	class="textarea-bordered textarea h-64 w-full font-mono text-xs leading-relaxed"
 	placeholder={m.paste_placeholder()}
 	spellcheck="false"></textarea>
 <div class="mt-2 flex flex-wrap items-center gap-2">

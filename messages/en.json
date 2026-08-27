@@ -1,7 +1,7 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"app_title": "SSL Certificate Tools",
-	"app_subtitle": "Inspect certificates and compose complete certificate chains — everything runs in your browser, nothing is uploaded.",
+	"app_subtitle": "Inspect certificates and compose complete certificate chains everything runs in your browser, nothing is uploaded.",
 	"tab_checker": "Certificate Checker",
 	"tab_composer": "Chain Composer",
 	"checker_desc": "Paste or upload a certificate to decode its contents and check its validity.",
@@ -12,10 +12,6 @@
 	"compose_button": "Compose chain",
 	"clear": "Clear",
 	"working": "Working…",
-	"hostname_label": "Hostname (optional)",
-	"hostname_placeholder": "www.example.com",
-	"hostname_match": "This certificate covers {host}.",
-	"hostname_no_match": "This certificate does NOT cover {host}.",
 	"error_no_cert": "No valid certificate found. Paste PEM data (-----BEGIN CERTIFICATE-----) or upload a PEM/DER file.",
 	"error_file_read": "Could not read a certificate from {name}.",
 	"certs_found": "{count} certificate(s) parsed",
@@ -44,8 +40,8 @@
 	"badge_fetched": "Downloaded automatically",
 	"link_ok": "Signed by the certificate below",
 	"link_bad": "Signature could NOT be verified against the certificate below",
-	"chain_complete_root": "Chain is complete — a self-signed root certificate was reached.",
-	"chain_missing": "Chain is incomplete — missing issuer: {issuer}",
+	"chain_complete_root": "Chain is complete a self-signed root certificate was reached.",
+	"chain_missing": "Chain is incomplete missing issuer: {issuer}",
 	"aia_fetched": "Missing intermediate was downloaded from {url}",
 	"aia_failed": "The missing certificate could not be downloaded automatically (the CA server blocks cross-origin requests). Download it yourself and paste it above: {url}",
 	"extras_note": "{count} provided certificate(s) were not part of the chain and were ignored.",
@@ -57,5 +53,6 @@
 	"download_pem": "Download .pem",
 	"download_zip": "Download bundle (.zip)",
 	"chain_order": "Certificate order: server certificate first, then intermediates, root last.",
-	"privacy_note": "Certificates never leave your browser."
+	"privacy_note": "Certificates never leave your browser.",
+	"results_placeholder": "Results will appear here."
 }

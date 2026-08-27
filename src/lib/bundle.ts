@@ -197,9 +197,9 @@ certificate.p7b - PKCS#7 bundle containing full certificate chain
 This folder contains individual certificate files for Microsoft Exchange.
 
 Import order (important):
-1. Root CA certificate (.crt) — import into Trusted Root Certification Authorities
-2. Intermediate CA certificate(s) (.crt) — import into Intermediate Certification Authorities
-3. Leaf/server certificate (.crt) — assign to Exchange services
+1. Root CA certificate (.crt) import into Trusted Root Certification Authorities
+2. Intermediate CA certificate(s) (.crt) import into Intermediate Certification Authorities
+3. Leaf/server certificate (.crt) assign to Exchange services
 
 Alternative: Use the .p7b file (PKCS#7) for one-step import via MMC.
 `
@@ -239,7 +239,7 @@ iis/       PKCS#7 (.p7b) bundle with IIS import steps
 exchange/  individual certificates + .p7b for Microsoft Exchange
 pem/       individual PEM files for any other server
 
-The private key is NOT included — this tool never sees it. Keep it safe
+The private key is NOT included this tool never sees it. Keep it safe
 and place it where each server's README points.
 
 Note: servers should send the leaf + intermediates (fullchain); clients

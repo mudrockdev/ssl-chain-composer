@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { m } from '#lib/paraglide/messages.js';
-	import { describeCert, matchesHostname, parseCertificates, type CertInfo } from '#lib/cert.js';
+	import { describeCert, parseCertificates, type CertInfo } from '#lib/cert.js';
 	import CertCard from './CertCard.svelte';
 	import CertInput from './CertInput.svelte';
 
 	let input = $state('');
-	let hostname = $state('');
 	let results = $state<CertInfo[]>([]);
 	let error = $state('');
 	let busy = $state(false);
@@ -27,51 +26,47 @@
 			busy = false;
 		}
 	}
-
-	const hostnameResult = $derived(
-		results.length && hostname.trim() ? matchesHostname(results[0], hostname) : null
-	);
 </script>
 
-<p class="mb-4 text-sm text-base-content/70">{m.checker_desc()}</p>
+<div class="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+	<section class="card bg-base-100 border-base-300 border shadow-sm lg:sticky lg:top-6">
+		<div class="card-body gap-4 p-6">
+			<div>
+				<h2 class="card-title text-base">{m.tab_checker()}</h2>
+				<p class="text-base-content/70 mt-1 text-sm">{m.checker_desc()}</p>
+			</div>
 
-<CertInput bind:value={input} onerror={(msg) => (error = msg)} />
+			<CertInput bind:value={input} onerror={(msg) => (error = msg)} />
 
-<div class="mt-4 flex flex-wrap items-end gap-3">
-	<label class="form-control">
-		<span class="label-text mb-1 block text-xs text-base-content/60">{m.hostname_label()}</span>
-		<input
-			type="text"
-			bind:value={hostname}
-			class="input-bordered input w-56 font-mono input-sm"
-			placeholder={m.hostname_placeholder()}
-			spellcheck="false"
-		/>
-	</label>
-	<button class="btn btn-primary btn-sm" onclick={check} disabled={busy || !input.trim()}>
-		{#if busy}<span class="loading loading-xs loading-spinner"
-			></span>{m.working()}{:else}{m.check_button()}{/if}
-	</button>
-</div>
+			<button
+				class="btn btn-primary w-full sm:w-auto"
+				onclick={check}
+				disabled={busy || !input.trim()}
+			>
+				{#if busy}<span class="loading loading-xs loading-spinner"
+					></span>{m.working()}{:else}{m.check_button()}{/if}
+			</button>
 
-{#if error}
-	<div role="alert" class="mt-4 alert text-sm alert-error">{error}</div>
-{/if}
+			{#if error}
+				<div role="alert" class="alert text-sm alert-error">{error}</div>
+			{/if}
+		</div>
+	</section>
 
-{#if results.length}
-	<div class="mt-6 space-y-4">
-		{#if hostnameResult !== null}
-			<div role="alert" class="alert text-sm {hostnameResult ? 'alert-success' : 'alert-error'}">
-				{hostnameResult
-					? m.hostname_match({ host: hostname.trim() })
-					: m.hostname_no_match({ host: hostname.trim() })}
+	<section class="space-y-4">
+		{#if results.length}
+			{#if results.length > 1}
+				<p class="text-base-content/60 text-sm">{m.certs_found({ count: results.length })}</p>
+			{/if}
+			{#each results as info (info.sha256)}
+				<CertCard {info} />
+			{/each}
+		{:else}
+			<div
+				class="border-base-300 text-base-content/40 flex min-h-64 items-center justify-center rounded-2xl border-2 border-dashed p-8 text-sm"
+			>
+				{m.results_placeholder()}
 			</div>
 		{/if}
-		{#if results.length > 1}
-			<p class="text-sm text-base-content/60">{m.certs_found({ count: results.length })}</p>
-		{/if}
-		{#each results as info (info.sha256)}
-			<CertCard {info} />
-		{/each}
-	</div>
-{/if}
+	</section>
+</div>

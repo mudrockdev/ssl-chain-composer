@@ -39,11 +39,11 @@
 				<span class="badge badge-sm badge-warning">{m.status_not_yet_valid()}</span>
 			{:else if days <= 30}
 				<span class="badge badge-sm badge-warning"
-					>{m.status_valid()} — {m.expires_in_days({ days })}</span
+					>{m.status_valid()} / {m.expires_in_days({ days })}</span
 				>
 			{:else}
 				<span class="badge badge-sm badge-success"
-					>{m.status_valid()} — {m.expires_in_days({ days })}</span
+					>{m.status_valid()} / {m.expires_in_days({ days })}</span
 				>
 			{/if}
 		</div>

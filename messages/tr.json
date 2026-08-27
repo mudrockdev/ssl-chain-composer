@@ -1,7 +1,7 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"app_title": "SSL Sertifika Araçları",
-	"app_subtitle": "Sertifikaları inceleyin ve eksiksiz sertifika zincirleri oluşturun — her şey tarayıcınızda çalışır, hiçbir veri yüklenmez.",
+	"app_subtitle": "Sertifikaları inceleyin ve eksiksiz sertifika zincirleri oluşturun her şey tarayıcınızda çalışır, hiçbir veri yüklenmez.",
 	"tab_checker": "Sertifika Denetleyici",
 	"tab_composer": "Zincir Oluşturucu",
 	"checker_desc": "İçeriğini çözümlemek ve geçerliliğini denetlemek için bir sertifika yapıştırın veya yükleyin.",
@@ -12,10 +12,6 @@
 	"compose_button": "Zinciri oluştur",
 	"clear": "Temizle",
 	"working": "İşleniyor…",
-	"hostname_label": "Alan adı (isteğe bağlı)",
-	"hostname_placeholder": "www.example.com",
-	"hostname_match": "Bu sertifika {host} alan adını kapsıyor.",
-	"hostname_no_match": "Bu sertifika {host} alan adını KAPSAMIYOR.",
 	"error_no_cert": "Geçerli bir sertifika bulunamadı. PEM verisi yapıştırın (-----BEGIN CERTIFICATE-----) veya PEM/DER dosyası yükleyin.",
 	"error_file_read": "{name} dosyasından sertifika okunamadı.",
 	"certs_found": "{count} sertifika çözümlendi",
@@ -44,8 +40,8 @@
 	"badge_fetched": "Otomatik indirildi",
 	"link_ok": "Alttaki sertifika tarafından imzalanmış",
 	"link_bad": "İmza, alttaki sertifikayla DOĞRULANAMADI",
-	"chain_complete_root": "Zincir tamam — kendinden imzalı kök sertifikaya ulaşıldı.",
-	"chain_missing": "Zincir eksik — bulunamayan veren: {issuer}",
+	"chain_complete_root": "Zincir tamam kendinden imzalı kök sertifikaya ulaşıldı.",
+	"chain_missing": "Zincir eksik bulunamayan veren: {issuer}",
 	"aia_fetched": "Eksik ara sertifika {url} adresinden indirildi",
 	"aia_failed": "Eksik sertifika otomatik indirilemedi (CA sunucusu tarayıcı isteklerini engelliyor). Şu adresten kendiniz indirip yukarıya yapıştırın: {url}",
 	"extras_note": "Sağlanan {count} sertifika zincirin parçası olmadığı için yok sayıldı.",
@@ -57,5 +53,6 @@
 	"download_pem": ".pem indir",
 	"download_zip": "Paketi indir (.zip)",
 	"chain_order": "Sertifika sırası: önce sunucu sertifikası, sonra ara sertifikalar, en sonda kök.",
-	"privacy_note": "Sertifikalar tarayıcınızdan asla ayrılmaz."
+	"privacy_note": "Sertifikalar tarayıcınızdan asla ayrılmaz.",
+	"results_placeholder": "Sonuçlar burada görünecek."
 }
