@@ -55,6 +55,7 @@
 	"copy": "Copy",
 	"copied": "Copied!",
 	"download_pem": "Download .pem",
+	"download_zip": "Download bundle (.zip)",
 	"chain_order": "Certificate order: server certificate first, then intermediates, root last.",
 	"privacy_note": "Certificates never leave your browser."
 }

@@ -8,6 +8,7 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"test": "bun test",
+		"gen:bundles": "bun tests/generate-ssl-bundles.ts",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -36,7 +37,11 @@
 		"#lib/*": "./src/lib/*"
 	},
 	"dependencies": {
+		"@peculiar/asn1-cms": "^2.9.4",
+		"@peculiar/asn1-schema": "^2.9.4",
+		"@peculiar/asn1-x509": "^2.9.4",
 		"@peculiar/x509": "^2.0.0",
+		"fflate": "^0.8.3",
 		"reflect-metadata": "^0.2.2"
 	}
 }

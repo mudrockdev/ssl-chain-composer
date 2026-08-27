@@ -5,7 +5,11 @@
     "": {
       "name": "ssl",
       "dependencies": {
+        "@peculiar/asn1-cms": "^2.9.4",
+        "@peculiar/asn1-schema": "^2.9.4",
+        "@peculiar/asn1-x509": "^2.9.4",
         "@peculiar/x509": "^2.0.0",
+        "fflate": "^0.8.3",
         "reflect-metadata": "^0.2.2",
       },
       "devDependencies": {
@@ -14,7 +18,7 @@
         "@sveltejs/kit": "^3.0.0-next.0",
         "@sveltejs/vite-plugin-svelte": "^7.2.0",
         "@tailwindcss/vite": "^4.3.0",
-        "@types/bun": "^1.4.0",
+        "@types/bun": "npm:bun-types@^1.4.0",
         "daisyui": "^5.7.22",
         "prettier": "^3.8.3",
         "prettier-plugin-svelte": "^4.1.0",

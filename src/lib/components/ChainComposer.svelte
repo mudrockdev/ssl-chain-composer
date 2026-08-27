@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { m } from '#lib/paraglide/messages.js';
+	import { buildBundle, bundleDomain, bundleFileName, zipBundle } from '#lib/bundle.js';
 	import { composeChain, parseCertificates, type ChainResult } from '#lib/cert.js';
 	import CertCard from './CertCard.svelte';
 	import CertInput from './CertInput.svelte';
@@ -51,13 +52,23 @@
 		setTimeout(() => (copied = false), 2000);
 	}
 
-	function downloadPem() {
-		const url = URL.createObjectURL(new Blob([composedPem], { type: 'application/x-pem-file' }));
+	function download(data: BlobPart, type: string, name: string) {
+		const url = URL.createObjectURL(new Blob([data], { type }));
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = 'chain.pem';
+		a.download = name;
 		a.click();
 		URL.revokeObjectURL(url);
+	}
+
+	function downloadPem() {
+		download(composedPem, 'application/x-pem-file', 'chain.pem');
+	}
+
+	function downloadZip() {
+		if (!result) return;
+		const zip = zipBundle(buildBundle(result));
+		download(zip as BlobPart, 'application/zip', bundleFileName(bundleDomain(result)));
 	}
 </script>
 
@@ -134,6 +145,7 @@
 						{copied ? m.copied() : m.copy()}
 					</button>
 					<button class="btn btn-outline btn-sm" onclick={downloadPem}>{m.download_pem()}</button>
+					<button class="btn btn-outline btn-sm" onclick={downloadZip}>{m.download_zip()}</button>
 				</div>
 			</div>
 		</div>

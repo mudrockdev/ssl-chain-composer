@@ -55,6 +55,7 @@
 	"copy": "Kopyala",
 	"copied": "Kopyalandı!",
 	"download_pem": ".pem indir",
+	"download_zip": "Paketi indir (.zip)",
 	"chain_order": "Sertifika sırası: önce sunucu sertifikası, sonra ara sertifikalar, en sonda kök.",
 	"privacy_note": "Sertifikalar tarayıcınızdan asla ayrılmaz."
 }

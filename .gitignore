@@ -2,6 +2,7 @@ node_modules
 
 # Output
 .output
+tests/ssl-bundles/
 .vercel
 .netlify
 .wrangler
