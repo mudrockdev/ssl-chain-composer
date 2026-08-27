@@ -8,7 +8,7 @@
 	let result = $state<ChainResult | null>(null);
 	let error = $state('');
 	let busy = $state(false);
-	let includeRoot = $state(false);
+	let includeRoot = $state(true);
 	let copied = $state(false);
 
 	async function compose() {
