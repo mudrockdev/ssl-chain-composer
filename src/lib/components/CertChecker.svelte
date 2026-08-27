@@ -29,17 +29,17 @@
 </script>
 
 <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-	<section class="card bg-base-100 border-base-300 border shadow-sm lg:sticky lg:top-6">
+	<section class="card border border-base-300 bg-base-100 shadow-sm lg:sticky lg:top-6">
 		<div class="card-body gap-4 p-6">
 			<div>
 				<h2 class="card-title text-base">{m.tab_checker()}</h2>
-				<p class="text-base-content/70 mt-1 text-sm">{m.checker_desc()}</p>
+				<p class="mt-1 text-sm text-base-content/70">{m.checker_desc()}</p>
 			</div>
 
 			<CertInput bind:value={input} onerror={(msg) => (error = msg)} />
 
 			<button
-				class="btn btn-primary w-full sm:w-auto"
+				class="btn w-full btn-primary sm:w-auto"
 				onclick={check}
 				disabled={busy || !input.trim()}
 			>
@@ -56,14 +56,14 @@
 	<section class="space-y-4">
 		{#if results.length}
 			{#if results.length > 1}
-				<p class="text-base-content/60 text-sm">{m.certs_found({ count: results.length })}</p>
+				<p class="text-sm text-base-content/60">{m.certs_found({ count: results.length })}</p>
 			{/if}
 			{#each results as info (info.sha256)}
 				<CertCard {info} />
 			{/each}
 		{:else}
 			<div
-				class="border-base-300 text-base-content/40 flex min-h-64 items-center justify-center rounded-2xl border-2 border-dashed p-8 text-sm"
+				class="flex min-h-64 items-center justify-center rounded-2xl border-2 border-dashed border-base-300 p-8 text-sm text-base-content/40"
 			>
 				{m.results_placeholder()}
 			</div>

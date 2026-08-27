@@ -15,12 +15,12 @@
 	<meta name="description" content={m.app_subtitle()} />
 </svelte:head>
 
-<div class="bg-base-200 min-h-screen">
-	<header class="bg-base-100 border-base-300 border-b">
+<div class="min-h-screen bg-base-200">
+	<header class="border-b border-base-300 bg-base-100">
 		<div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 lg:px-8">
 			<div class="mr-auto">
 				<h1 class="text-xl font-bold tracking-tight">{m.app_title()}</h1>
-				<p class="text-base-content/60 mt-0.5 hidden max-w-2xl text-sm sm:block">
+				<p class="mt-0.5 hidden max-w-2xl text-sm text-base-content/60 sm:block">
 					{m.app_subtitle()}
 				</p>
 			</div>
@@ -44,7 +44,7 @@
 				{#each locales as locale (locale)}
 					<a
 						href={resolve(localizeHref(page.url.pathname, { locale }) as Path)}
-						class="btn join-item btn-sm uppercase {locale === getLocale()
+						class="btn join-item uppercase btn-sm {locale === getLocale()
 							? 'btn-neutral'
 							: 'btn-ghost'}">{locale}</a
 					>

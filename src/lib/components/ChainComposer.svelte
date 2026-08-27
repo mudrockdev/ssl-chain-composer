@@ -73,17 +73,17 @@
 </script>
 
 <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-	<section class="card bg-base-100 border-base-300 border shadow-sm lg:sticky lg:top-6">
+	<section class="card border border-base-300 bg-base-100 shadow-sm lg:sticky lg:top-6">
 		<div class="card-body gap-4 p-6">
 			<div>
 				<h2 class="card-title text-base">{m.tab_composer()}</h2>
-				<p class="text-base-content/70 mt-1 text-sm">{m.composer_desc()}</p>
+				<p class="mt-1 text-sm text-base-content/70">{m.composer_desc()}</p>
 			</div>
 
 			<CertInput bind:value={input} onerror={(msg) => (error = msg)} />
 
 			<button
-				class="btn btn-primary w-full sm:w-auto"
+				class="btn w-full btn-primary sm:w-auto"
 				onclick={compose}
 				disabled={busy || !input.trim()}
 			>
@@ -115,7 +115,7 @@
 				</div>
 			{/if}
 			{#if result.extras.length}
-				<p class="text-base-content/60 text-sm">{m.extras_note({ count: result.extras.length })}</p>
+				<p class="text-sm text-base-content/60">{m.extras_note({ count: result.extras.length })}</p>
 			{/if}
 
 			<div>
@@ -134,7 +134,7 @@
 				{/each}
 			</div>
 
-			<div class="card bg-base-100 border-base-300 border shadow-sm">
+			<div class="card border border-base-300 bg-base-100 shadow-sm">
 				<div class="card-body gap-3 p-6">
 					<div class="flex flex-wrap items-center gap-3">
 						<h3 class="mr-auto card-title text-base">{m.composed_chain()}</h3>
@@ -145,12 +145,11 @@
 							</label>
 						{/if}
 					</div>
-					<p class="text-base-content/60 text-xs">{m.chain_order()} {m.root_note()}</p>
+					<p class="text-xs text-base-content/60">{m.chain_order()} {m.root_note()}</p>
 					<textarea
 						readonly
 						class="textarea-bordered textarea h-48 w-full font-mono text-xs leading-relaxed"
-						value={composedPem}
-					></textarea>
+						value={composedPem}></textarea>
 					<div class="card-actions">
 						<button class="btn btn-outline btn-sm" onclick={copyPem}>
 							{copied ? m.copied() : m.copy()}
@@ -162,7 +161,7 @@
 			</div>
 		{:else}
 			<div
-				class="border-base-300 text-base-content/40 flex min-h-64 items-center justify-center rounded-2xl border-2 border-dashed p-8 text-sm"
+				class="flex min-h-64 items-center justify-center rounded-2xl border-2 border-dashed border-base-300 p-8 text-sm text-base-content/40"
 			>
 				{m.results_placeholder()}
 			</div>
