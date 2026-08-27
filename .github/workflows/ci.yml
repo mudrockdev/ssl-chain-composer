@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Check, test & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # Temporal API requires bun >= 1.4
+          bun-version: '1.4.0'
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Prettier
+        run: bun run lint
+      - name: svelte-check
+        run: bun run check
+      - name: Unit tests
+        run: bun test
+      - name: Production build
+        run: bun run build
+
+  serve:
+    name: Serve generated certs (Caddy & nginx)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.0'
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Generate SSL bundles
+        run: bun run gen:bundles
+
+      - name: Verify chain and PKCS#7 with openssl
+        working-directory: tests/ssl-bundles
+        run: |
+          openssl verify -CAfile pem/root.pem -untrusted pem/chain.pem pem/localhost.pem
+          openssl pkcs7 -inform DER -in iis/certificate.p7b -print_certs -noout
+          openssl verify -CAfile pem/root.pem pem/ca-bundle.pem
+
+      - name: Install Caddy
+        run: |
+          curl -fsSL "https://caddyserver.com/api/download?os=linux&arch=amd64" -o caddy
+          chmod +x caddy
+          sudo mv caddy /usr/local/bin/caddy
+          caddy version
+
+      - name: Validate Caddyfile
+        working-directory: tests/ssl-bundles/caddy
+        run: caddy validate --config Caddyfile
+
+      - name: Serve with Caddy and verify
+        working-directory: tests/ssl-bundles/caddy
+        run: |
+          sudo caddy start --config Caddyfile
+          sleep 2
+          curl --fail --cacert ../pem/root.pem https://localhost | grep "Hello from localhost"
+          echo | openssl s_client -connect localhost:443 -servername localhost \
+            -CAfile ../pem/root.pem 2>/dev/null | grep "Verify return code: 0 (ok)"
+          sudo caddy stop
+
+      - name: Install nginx
+        run: sudo apt-get update && sudo apt-get install -y nginx
+
+      - name: Serve with nginx and verify
+        run: |
+          sudo tee /etc/nginx/conf.d/ssl-test.conf > /dev/null <<EOF
+          server {
+              listen 8443 ssl;
+              server_name localhost;
+              ssl_certificate     $GITHUB_WORKSPACE/tests/ssl-bundles/nginx/fullchain.crt;
+              ssl_certificate_key $GITHUB_WORKSPACE/tests/ssl-bundles/caddy/privkey.pem;
+              return 200 "nginx SSL OK\n";
+          }
+          EOF
+          sudo nginx -t
+          sudo systemctl restart nginx
+          curl --fail --cacert tests/ssl-bundles/pem/root.pem https://localhost:8443 | grep "nginx SSL OK"
+          echo | openssl s_client -connect localhost:8443 -servername localhost \
+            -CAfile tests/ssl-bundles/pem/root.pem 2>/dev/null | grep "Verify return code: 0 (ok)"
