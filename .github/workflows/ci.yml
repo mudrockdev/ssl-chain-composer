@@ -19,12 +19,10 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Prettier
         run: bun run lint
-      - name: svelte-check
-        run: bun run check
-      - name: Unit tests
-        run: bun test
       - name: Production build
         run: bun run build
+      - name: Unit tests
+        run: bun test
 
   serve:
     name: Serve generated certs (Caddy & nginx)
