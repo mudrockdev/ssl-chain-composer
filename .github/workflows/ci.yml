@@ -10,7 +10,7 @@ jobs:
     name: Check, test & build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           # Temporal API requires bun >= 1.4
@@ -28,7 +28,7 @@ jobs:
     name: Serve generated certs (Caddy & nginx)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.4.0'
