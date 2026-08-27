@@ -15,8 +15,12 @@ const KEY_ALG = { name: 'ECDSA', namedCurve: 'P-256' };
 const SIGN_ALG = { name: 'ECDSA', hash: 'SHA-256' };
 const KEY_USAGES: KeyUsage[] = ['sign', 'verify'];
 
-const YEAR = 365 * 86_400_000;
-const now = new Date();
+const now = Temporal.Now.zonedDateTimeISO();
+
+// @peculiar/x509 expects Date objects at its API boundary
+function toDate(zdt: Temporal.ZonedDateTime): Date {
+	return new Date(zdt.epochMilliseconds);
+}
 
 let rootKeys: CryptoKeyPair;
 let intKeys: CryptoKeyPair;
@@ -37,8 +41,8 @@ beforeAll(async () => {
 	root = await x509.X509CertificateGenerator.createSelfSigned({
 		serialNumber: '01',
 		name: 'CN=Test Root CA, O=Test Org',
-		notBefore: new Date(now.getTime() - YEAR),
-		notAfter: new Date(now.getTime() + 10 * YEAR),
+		notBefore: toDate(now.subtract({ years: 1 })),
+		notAfter: toDate(now.add({ years: 10 })),
 		signingAlgorithm: SIGN_ALG,
 		keys: rootKeys,
 		extensions: [new x509.BasicConstraintsExtension(true, undefined, true)]
@@ -48,8 +52,8 @@ beforeAll(async () => {
 		serialNumber: '02',
 		subject: 'CN=Test Intermediate CA, O=Test Org',
 		issuer: root.subject,
-		notBefore: new Date(now.getTime() - YEAR),
-		notAfter: new Date(now.getTime() + 5 * YEAR),
+		notBefore: toDate(now.subtract({ years: 1 })),
+		notAfter: toDate(now.add({ years: 5 })),
 		signingAlgorithm: SIGN_ALG,
 		publicKey: intKeys.publicKey,
 		signingKey: rootKeys.privateKey,
@@ -60,8 +64,8 @@ beforeAll(async () => {
 		serialNumber: '03',
 		subject: 'CN=example.com',
 		issuer: intermediate.subject,
-		notBefore: new Date(now.getTime() - 86_400_000),
-		notAfter: new Date(now.getTime() + 90 * 86_400_000),
+		notBefore: toDate(now.subtract({ days: 1 })),
+		notAfter: toDate(now.add({ days: 90 })),
 		signingAlgorithm: SIGN_ALG,
 		publicKey: leafKeys.publicKey,
 		signingKey: intKeys.privateKey,
@@ -155,8 +159,8 @@ describe('validityStatus / daysUntil', () => {
 		const expired = await x509.X509CertificateGenerator.createSelfSigned({
 			serialNumber: '0a',
 			name: 'CN=Expired',
-			notBefore: new Date(now.getTime() - 2 * YEAR),
-			notAfter: new Date(now.getTime() - YEAR),
+			notBefore: toDate(now.subtract({ years: 2 })),
+			notAfter: toDate(now.subtract({ years: 1 })),
 			signingAlgorithm: SIGN_ALG,
 			keys: rootKeys
 		});
@@ -169,8 +173,8 @@ describe('validityStatus / daysUntil', () => {
 		const future = await x509.X509CertificateGenerator.createSelfSigned({
 			serialNumber: '0b',
 			name: 'CN=Future',
-			notBefore: new Date(now.getTime() + YEAR),
-			notAfter: new Date(now.getTime() + 2 * YEAR),
+			notBefore: toDate(now.add({ years: 1 })),
+			notAfter: toDate(now.add({ years: 2 })),
 			signingAlgorithm: SIGN_ALG,
 			keys: rootKeys
 		});
@@ -230,8 +234,8 @@ describe('composeChain', () => {
 		const fakeIntermediate = await x509.X509CertificateGenerator.createSelfSigned({
 			serialNumber: '0c',
 			name: intermediate.subject,
-			notBefore: new Date(now.getTime() - YEAR),
-			notAfter: new Date(now.getTime() + YEAR),
+			notBefore: toDate(now.subtract({ years: 1 })),
+			notAfter: toDate(now.add({ years: 1 })),
 			signingAlgorithm: SIGN_ALG,
 			keys: fakeKeys,
 			extensions: [new x509.BasicConstraintsExtension(true, 0, true)]
