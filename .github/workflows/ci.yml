@@ -55,6 +55,19 @@ jobs:
         working-directory: tests/ssl-bundles/caddy
         run: caddy validate --config Caddyfile
 
+      - name: Start backend app (proxy target)
+        run: |
+          cat > /tmp/backend.ts <<'EOF'
+          Bun.serve({
+          	port: 8080,
+          	fetch: () => new Response('backend OK')
+          });
+          console.log('backend listening on :8080');
+          EOF
+          nohup bun /tmp/backend.ts > /tmp/backend.log 2>&1 &
+          sleep 1
+          curl --fail http://127.0.0.1:8080 | grep "backend OK"
+
       - name: Serve with Caddy and verify
         working-directory: tests/ssl-bundles/caddy
         run: |
@@ -65,10 +78,25 @@ jobs:
             -CAfile ../pem/root.pem 2>/dev/null | grep "Verify return code: 0 (ok)"
           sudo caddy stop
 
+      - name: Reverse proxy through Caddy and verify
+        working-directory: tests/ssl-bundles/caddy
+        run: |
+          cat > Caddyfile.proxy <<'EOF'
+          localhost {
+          	tls fullchain.pem privkey.pem
+          	reverse_proxy 127.0.0.1:8080
+          }
+          EOF
+          caddy validate --config Caddyfile.proxy
+          sudo caddy start --config Caddyfile.proxy
+          sleep 2
+          curl --fail --cacert ../pem/root.pem https://localhost | grep "backend OK"
+          sudo caddy stop
+
       - name: Install nginx
         run: sudo apt-get update && sudo apt-get install -y nginx
 
-      - name: Serve with nginx and verify
+      - name: Reverse proxy through nginx and verify
         run: |
           sudo tee /etc/nginx/conf.d/ssl-test.conf > /dev/null <<EOF
           server {
@@ -76,11 +104,14 @@ jobs:
               server_name localhost;
               ssl_certificate     $GITHUB_WORKSPACE/tests/ssl-bundles/nginx/fullchain.crt;
               ssl_certificate_key $GITHUB_WORKSPACE/tests/ssl-bundles/caddy/privkey.pem;
-              return 200 "nginx SSL OK\n";
+              location / {
+                  proxy_pass http://127.0.0.1:8080;
+                  proxy_set_header Host \$host;
+              }
           }
           EOF
           sudo nginx -t
           sudo systemctl restart nginx
-          curl --fail --cacert tests/ssl-bundles/pem/root.pem https://localhost:8443 | grep "nginx SSL OK"
+          curl --fail --cacert tests/ssl-bundles/pem/root.pem https://localhost:8443 | grep "backend OK"
           echo | openssl s_client -connect localhost:8443 -servername localhost \
             -CAfile tests/ssl-bundles/pem/root.pem 2>/dev/null | grep "Verify return code: 0 (ok)"
