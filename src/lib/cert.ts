@@ -1,6 +1,9 @@
 // tsyringe (used by @peculiar/x509) requires a reflect polyfill loaded first
 import 'reflect-metadata';
 import * as x509 from '@peculiar/x509';
+import { fetchCaIssuers } from './ca-fetch.js';
+
+export { parseCertificateFile, parseCertificates } from './parse.js';
 
 export interface CertInfo {
 	cert: x509.X509Certificate;
@@ -42,9 +45,6 @@ export interface ChainResult {
 	extras: CertInfo[];
 }
 
-const PEM_RE =
-	/-----BEGIN (?:TRUSTED )?CERTIFICATE-----[A-Za-z0-9+/=\s]+?-----END (?:TRUSTED )?CERTIFICATE-----/g;
-
 const EKU_NAMES: Record<string, string> = {
 	'1.3.6.1.5.5.7.3.1': 'TLS server authentication',
 	'1.3.6.1.5.5.7.3.2': 'TLS client authentication',
@@ -71,38 +71,6 @@ function hex(buf: ArrayBuffer): string {
 		.map((b) => b.toString(16).padStart(2, '0'))
 		.join(':')
 		.toUpperCase();
-}
-
-function dedupe(certs: x509.X509Certificate[]): x509.X509Certificate[] {
-	const seen = new Set<string>();
-	return certs.filter((c) => {
-		const key = c.toString('base64');
-		if (seen.has(key)) return false;
-		seen.add(key);
-		return true;
-	});
-}
-
-/** Parse PEM text (one or more blocks) or a bare base64 DER blob. */
-export function parseCertificates(input: string): x509.X509Certificate[] {
-	const certs: x509.X509Certificate[] = [];
-	const blocks = input.match(PEM_RE);
-	if (blocks) {
-		for (const block of blocks) certs.push(new x509.X509Certificate(block));
-	} else {
-		const cleaned = input.replace(/\s+/g, '');
-		if (cleaned) certs.push(new x509.X509Certificate(cleaned));
-	}
-	return dedupe(certs);
-}
-
-/** Parse an uploaded file: PEM text or binary DER. */
-export function parseCertificateFile(buf: ArrayBuffer): x509.X509Certificate[] {
-	const text = new TextDecoder('utf-8', { fatal: false }).decode(buf);
-	if (text.includes('-----BEGIN')) {
-		return parseCertificates(text);
-	}
-	return [new x509.X509Certificate(buf)];
 }
 
 function getCN(name: x509.Name, fallback: string): string {
@@ -174,17 +142,6 @@ export async function describeCert(cert: x509.X509Certificate, fetched = false):
 	};
 }
 
-async function fetchCaIssuer(url: string): Promise<x509.X509Certificate | null> {
-	try {
-		const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-		if (!res.ok) return null;
-		const buf = await res.arrayBuffer();
-		return parseCertificateFile(buf)[0] ?? null;
-	} catch {
-		return null;
-	}
-}
-
 async function verifiesAgainst(
 	child: x509.X509Certificate,
 	parent: x509.X509Certificate
@@ -194,6 +151,22 @@ async function verifiesAgainst(
 	} catch {
 		return false;
 	}
+}
+
+/**
+ * Pick the issuer for `child` out of downloaded candidates. A CA may publish several
+ * certificates with the same subject (cross-signed variants), so prefer one whose
+ * signature actually verifies and only fall back to a name match.
+ */
+async function pickIssuer(
+	child: x509.X509Certificate,
+	candidates: x509.X509Certificate[]
+): Promise<x509.X509Certificate | null> {
+	const named = candidates.filter((c) => c.subject === child.issuer);
+	for (const cand of named) {
+		if (await verifiesAgainst(child, cand)) return cand;
+	}
+	return named[0] ?? null;
 }
 
 /** Order the given certs into a chain (leaf first), fetching missing intermediates via AIA. */
@@ -236,11 +209,11 @@ export async function composeChain(certs: x509.X509Certificate[]): Promise<Chain
 				continue;
 			}
 		}
-		// try AIA download
+		// try AIA download (direct, then via CORS relay — see ca-fetch.ts)
 		if (!parent) {
 			for (const url of current.caIssuerUrls) {
-				const cert = await fetchCaIssuer(url);
-				if (cert && cert.subject === current.issuer) {
+				const cert = await pickIssuer(current.cert, await fetchCaIssuers(url));
+				if (cert) {
 					parent = await describeCert(cert, true);
 					fetchedFrom.push(url);
 					break;

@@ -109,6 +109,9 @@
 			{#each result.fetchedFrom as url (url)}
 				<div role="alert" class="alert text-sm break-all alert-info">{m.aia_fetched({ url })}</div>
 			{/each}
+			{#if result.fetchedFrom.length}
+				<p class="text-xs text-base-content/60">{m.aia_relay_note()}</p>
+			{/if}
 			{#if result.fetchFailedUrl}
 				<div role="alert" class="alert text-sm break-all alert-warning">
 					{m.aia_failed({ url: result.fetchFailedUrl })}
