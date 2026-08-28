@@ -10,6 +10,7 @@
         "@peculiar/asn1-x509": "^2.9.4",
         "@peculiar/x509": "^2.0.0",
         "fflate": "^0.8.3",
+        "openssl-wasm": "^3.1.0",
         "reflect-metadata": "^0.2.2",
       },
       "devDependencies": {
@@ -263,6 +264,8 @@
     "nanoid": ["nanoid@3.3.18", "", { "bin": { "nanoid": "bin/nanoid.cjs" } }, "sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w=="],
 
     "obug": ["obug@2.1.4", "", {}, "sha512-4a+OsYv9UktOJKE+l1A4OufDgdRF9PifWj+tJnHURo/P+WOxpG4GzUFL9qCalmWauao6ogiG+QvnCovwPoyAWA=="],
+
+    "openssl-wasm": ["openssl-wasm@3.1.0", "", {}, "sha512-+45NBMbnrOr69TBckHR2SoUSExGs9sE9/8mSOZapf7osgQ+01oqNqQu5j0AS+xLwHZ53kSXJVRjwfZkiJ6uL4g=="],
 
     "picocolors": ["picocolors@1.1.1", "", {}, "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="],
 

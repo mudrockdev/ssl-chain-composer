@@ -4,8 +4,10 @@
 	import { composeChain, parseCertificates, type ChainResult } from '#lib/cert.js';
 	import CertCard from './CertCard.svelte';
 	import CertInput from './CertInput.svelte';
+	import PrivateKeyCard from './PrivateKeyCard.svelte';
 
 	let input = $state('');
+	let privateKey = $state<{ pem: string; source: string } | null>(null);
 	let result = $state<ChainResult | null>(null);
 	let error = $state('');
 	let busy = $state(false);
@@ -80,7 +82,11 @@
 				<p class="mt-1 text-sm text-base-content/70">{m.composer_desc()}</p>
 			</div>
 
-			<CertInput bind:value={input} onerror={(msg) => (error = msg)} />
+			<CertInput
+				bind:value={input}
+				onerror={(msg) => (error = msg)}
+				onprivatekey={(pem, source) => (privateKey = { pem, source })}
+			/>
 
 			<button
 				class="btn w-full btn-primary sm:w-auto"
@@ -98,6 +104,13 @@
 	</section>
 
 	<section class="space-y-4">
+		{#if privateKey}
+			<PrivateKeyCard
+				pem={privateKey.pem}
+				source={privateKey.source}
+				onclear={() => (privateKey = null)}
+			/>
+		{/if}
 		{#if result}
 			{#if result.rootIncluded}
 				<div role="alert" class="alert text-sm alert-success">{m.chain_complete_root()}</div>
