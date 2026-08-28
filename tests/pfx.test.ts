@@ -20,8 +20,10 @@ const PASSWORD = 's3cret';
 const RSA_MODULUS_MD5 = 'e324106bab4eec40853fb131b495060a';
 
 /** `openssl x509 -noout -fingerprint -sha256`, to prove the DER survives extraction intact. */
-const LEAF_SHA256 = '8C:45:BB:78:D2:41:F3:B3:4D:3B:6D:EF:64:33:F9:85:08:F2:04:8C:7E:63:94:AC:C0:9B:0C:3E:E1:86:2F:6C';
-const CA_SHA256 = '1E:54:2A:02:98:82:CA:A0:C8:A6:5E:07:FA:B7:49:79:49:9E:E0:01:6C:6D:09:6B:EB:AF:0F:A7:FC:A6:B9:E8';
+const LEAF_SHA256 =
+	'8C:45:BB:78:D2:41:F3:B3:4D:3B:6D:EF:64:33:F9:85:08:F2:04:8C:7E:63:94:AC:C0:9B:0C:3E:E1:86:2F:6C';
+const CA_SHA256 =
+	'1E:54:2A:02:98:82:CA:A0:C8:A6:5E:07:FA:B7:49:79:49:9E:E0:01:6C:6D:09:6B:EB:AF:0F:A7:FC:A6:B9:E8';
 
 function fixture(name: string): Uint8Array {
 	return new Uint8Array(require('node:fs').readFileSync(`${__dirname}/fixtures/${name}`));

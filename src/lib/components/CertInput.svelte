@@ -100,10 +100,10 @@
 				bind:value={password}
 				autofocus
 				autocomplete="off"
-				class="input-bordered input input-sm min-w-0 flex-1 font-mono"
+				class="input-bordered input min-w-0 flex-1 font-mono input-sm"
 				placeholder={m.pfx_password_placeholder()}
 			/>
-			<button type="submit" class="btn btn-sm btn-primary" disabled={unlocking}>
+			<button type="submit" class="btn btn-primary btn-sm" disabled={unlocking}>
 				{#if unlocking}<span class="loading loading-xs loading-spinner"
 					></span>{m.working()}{:else}{m.pfx_unlock()}{/if}
 			</button>

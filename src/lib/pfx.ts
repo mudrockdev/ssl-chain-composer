@@ -56,7 +56,9 @@ function toPem(label: string, bytes: Uint8Array): string {
 	for (let i = 0; i < bytes.length; i += 0x8000) {
 		base64 += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
 	}
-	const body = btoa(base64).replace(/(.{64})/g, '$1\n').trimEnd();
+	const body = btoa(base64)
+		.replace(/(.{64})/g, '$1\n')
+		.trimEnd();
 	return `-----BEGIN ${label}-----\n${body}\n-----END ${label}-----`;
 }
 
@@ -96,10 +98,9 @@ export async function extractPfx(
 
 	// forge parses RSA keys and RSA-signed certificates; when it cannot (EC, for example)
 	// it leaves the decrypted DER behind in bag.asn1, which is what we actually want
-	const keyBag = [
-		...bagsOfType(pki.oids.pkcs8ShroudedKeyBag),
-		...bagsOfType(pki.oids.keyBag)
-	].find((bag) => bag.asn1 || bag.key);
+	const keyBag = [...bagsOfType(pki.oids.pkcs8ShroudedKeyBag), ...bagsOfType(pki.oids.keyBag)].find(
+		(bag) => bag.asn1 || bag.key
+	);
 
 	let privateKeyPem: string | null = null;
 	if (keyBag) {
