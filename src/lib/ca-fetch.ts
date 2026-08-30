@@ -18,7 +18,23 @@ import { parseCertificateFile } from './parse.js';
  * The relays are tried together and the first usable response wins, so one being slow,
  * rate-limited or down does not break the download.
  */
+/**
+ * Optional self-hosted relay (see scripts/aia-proxy-worker.js), e.g.
+ * `VITE_AIA_PROXY=https://aia-proxy.example.workers.dev` in .env. Recommended:
+ * the public relays below are hobby projects and some are SNI-blocked in some
+ * countries. Accepts a bare base URL or a full template ending in `?url=`.
+ */
+const CUSTOM_RELAY: string | undefined = import.meta.env.VITE_AIA_PROXY;
+
+function customRelay(base: string): (url: string) => string {
+	const trimmed = base.trim().replace(/\/+$/, '');
+	const prefix = trimmed.includes('?') ? trimmed : `${trimmed}/?url=`;
+	return (url) => `${prefix}${encodeURIComponent(url)}`;
+}
+
 const RELAYS: Array<(url: string) => string> = [
+	...(CUSTOM_RELAY ? [customRelay(CUSTOM_RELAY)] : []),
+	(url) => `https://cors.eu.org/${url}`,
 	(url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
 	(url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
 	(url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,

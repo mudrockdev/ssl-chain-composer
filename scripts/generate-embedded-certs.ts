@@ -167,7 +167,7 @@ function seedUrls(): string[] {
 	urls.push(
 		'http://aia.entrust.net/l1k-chain256.cer',
 		'http://aia.entrust.net/l1m-chain256.cer',
-		'http://aia.entrust.net/l1f-chain256.cer'
+		'http://aia.entrust.net/l1j-ec1.cer'
 	);
 
 	// --- Microsoft (Azure / microsoft.com issuing CAs) ---
