@@ -2,10 +2,34 @@ import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
+import { spawnSync } from 'node:child_process';
+
+let certsGenerated = false;
+
+/** Refresh src/lib/embedded-certs.ts before production builds (offline-safe: the
+ *  generator keeps the committed file when the CA repositories are unreachable). */
+function embeddedCertsPlugin(): Plugin {
+	return {
+		name: 'generate-embedded-certs',
+		apply: 'build',
+		buildStart() {
+			// SvelteKit builds client and server in the same process — run once
+			if (certsGenerated) return;
+			certsGenerated = true;
+			const result = spawnSync('bun', ['scripts/generate-embedded-certs.ts'], {
+				stdio: 'inherit'
+			});
+			if (result.status !== 0) {
+				throw new Error('scripts/generate-embedded-certs.ts failed');
+			}
+		}
+	};
+}
 
 export default defineConfig({
 	plugins: [
+		embeddedCertsPlugin(),
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {

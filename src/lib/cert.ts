@@ -39,6 +39,8 @@ export interface ChainResult {
 	missingIssuer: string | null;
 	/** AIA URLs certificates were successfully fetched from */
 	fetchedFrom: string[];
+	/** subject CNs of certificates restored from the build-time embedded CA cache */
+	embeddedFrom: string[];
 	/** AIA URL that failed to fetch (likely CORS) */
 	fetchFailedUrl: string | null;
 	/** provided certs that are not part of the chain */
@@ -142,6 +144,91 @@ export async function describeCert(cert: x509.X509Certificate, fetched = false):
 	};
 }
 
+/**
+ * Self-hosted CORS proxy (see scripts/aia-proxy-worker.js), e.g.
+ * `VITE_AIA_PROXY=https://aia-proxy.example.workers.dev` in .env.
+ * Recommended: the public proxies below are hobby projects and some are
+ * SNI-blocked in some countries.
+ */
+const CUSTOM_PROXY: string | undefined = import.meta.env.VITE_AIA_PROXY;
+
+/** Accepts a bare base URL or a full template ending in `?url=`. */
+function customProxy(base: string): (url: string) => string {
+	const trimmed = base.trim().replace(/\/+$/, '');
+	const prefix = trimmed.includes('?') ? trimmed : `${trimmed}/?url=`;
+	return (url) => `${prefix}${encodeURIComponent(url)}`;
+}
+
+/** CORS proxies tried in order when the CA server blocks direct browser requests. */
+const AIA_PROXIES = [
+	...(CUSTOM_PROXY ? [customProxy(CUSTOM_PROXY)] : []),
+	(url: string) => `https://cors.eu.org/${url}`,
+	(url: string) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+	(url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+	(url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+];
+
+interface EmbeddedIndex {
+	byUrl: Map<string, x509.X509Certificate[]>;
+	all: x509.X509Certificate[];
+}
+
+let embeddedIndex: Promise<EmbeddedIndex> | null = null;
+
+/** Lazily load and parse the build-time embedded CA cache (code-split chunk). */
+function loadEmbedded(): Promise<EmbeddedIndex> {
+	embeddedIndex ??= import('./embedded-certs.js')
+		.then(({ EMBEDDED_CERTS }) => {
+			const byUrl = new Map<string, x509.X509Certificate[]>();
+			const all: x509.X509Certificate[] = [];
+			for (const [url, pem] of Object.entries(EMBEDDED_CERTS)) {
+				const certs = parseCertificates(pem);
+				byUrl.set(url.trim().toLowerCase(), certs);
+				all.push(...certs);
+			}
+			return { byUrl, all: dedupe(all) };
+		})
+		.catch(() => ({ byUrl: new Map(), all: [] }));
+	return embeddedIndex;
+}
+
+/** Find the issuer of `child` in the embedded CA cache — no network involved. */
+async function embeddedIssuer(child: CertInfo): Promise<x509.X509Certificate | null> {
+	const { byUrl, all } = await loadEmbedded();
+	// certs served at the child's AIA URLs first, then everything by subject
+	const candidates = [
+		...child.caIssuerUrls.flatMap((url) => byUrl.get(url.trim().toLowerCase()) ?? []),
+		...all
+	];
+	for (const cand of candidates) {
+		if (cand.subject !== child.issuer) continue;
+		if (await verifiesAgainst(child.cert, cand)) return cand;
+	}
+	return null;
+}
+
+async function fetchUrl(url: string): Promise<x509.X509Certificate | null> {
+	try {
+		const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+		if (!res.ok) return null;
+		const buf = await res.arrayBuffer();
+		return parseCertificateFile(buf)[0] ?? null;
+	} catch {
+		return null;
+	}
+}
+
+async function fetchCaIssuer(url: string): Promise<x509.X509Certificate | null> {
+	const direct = await fetchUrl(url);
+	if (direct) return direct;
+	// direct AIA fetches usually fail in the browser (CORS / http mixed content)
+	for (const proxy of AIA_PROXIES) {
+		const cert = await fetchUrl(proxy(url));
+		if (cert) return cert;
+	}
+	return null;
+}
+
 async function verifiesAgainst(
 	child: x509.X509Certificate,
 	parent: x509.X509Certificate
@@ -182,6 +269,7 @@ export async function composeChain(certs: x509.X509Certificate[]): Promise<Chain
 	const ordered: CertInfo[] = [leaf];
 	const links: boolean[] = [];
 	const fetchedFrom: string[] = [];
+	const embeddedFrom: string[] = [];
 	let fetchFailedUrl: string | null = null;
 	let missingIssuer: string | null = null;
 	let rootIncluded = leaf.selfSigned;
@@ -209,7 +297,15 @@ export async function composeChain(certs: x509.X509Certificate[]): Promise<Chain
 				continue;
 			}
 		}
-		// try AIA download (direct, then via CORS relay — see ca-fetch.ts)
+		// try the build-time embedded CA cache first (no network, no CORS)
+		if (!parent) {
+			const cert = await embeddedIssuer(current);
+			if (cert) {
+				parent = await describeCert(cert, true);
+				embeddedFrom.push(parent.subjectCN);
+			}
+		}
+		// then AIA download (direct, falling back to CORS proxies)
 		if (!parent) {
 			for (const url of current.caIssuerUrls) {
 				const cert = await pickIssuer(current.cert, await fetchCaIssuers(url));
@@ -233,7 +329,16 @@ export async function composeChain(certs: x509.X509Certificate[]): Promise<Chain
 	}
 
 	const extras = infos.filter((c) => !ordered.includes(c));
-	return { ordered, links, rootIncluded, missingIssuer, fetchedFrom, fetchFailedUrl, extras };
+	return {
+		ordered,
+		links,
+		rootIncluded,
+		missingIssuer,
+		fetchedFrom,
+		embeddedFrom,
+		fetchFailedUrl,
+		extras
+	};
 }
 
 /** Wildcard-aware hostname check against SANs (falls back to CN when no SAN). */
