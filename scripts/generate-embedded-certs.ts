@@ -9,9 +9,10 @@
  * first, so missing intermediates resolve without any network request — no
  * CORS or mixed-content problems.
  *
- * The output file is committed; regenerate with: bun run gen:certs
- * Unreachable seed URLs are reported but never fail the run — CAs retire
- * repository paths all the time.
+ * The output file is gitignored. It is refreshed by `vite build` and
+ * `bun run gen:certs`, and generated on demand when missing by the
+ * `bun test` preload (see bunfig.toml). Unreachable seed URLs are reported
+ * but never fail the run — CAs retire repository paths all the time.
  */
 import 'reflect-metadata';
 import * as x509 from '@peculiar/x509';
@@ -28,6 +29,12 @@ const TIMEOUT_MS = 15_000;
 /** ignore certificates that expired more than 10 years ago */
 const EXPIRY_CUTOFF = Date.now() - 10 * 365.25 * 86_400_000;
 const ID_SIGNED_DATA = '1.2.840.113549.1.7.2';
+
+/** AIA pointers found inside fetched certs that are known to be dead — never probed. */
+const DEAD_DISCOVERED = new Set([
+	'http://apps.identrust.com/roots/dstrootcax3.p7c',
+	'http://x.ss2.us/x.cer'
+]);
 
 function seedUrls(): string[] {
 	const urls: string[] = [];
@@ -94,7 +101,6 @@ function seedUrls(): string[] {
 		'ThawteRSACA2018',
 		'ThawteTLSRSACAG1',
 		'ThawteEVRSACAG2',
-		'EncryptionEverywhereDVTLSCA1',
 		'CloudflareIncECCCA-3'
 	]) {
 		urls.push(`http://cacerts.digicert.com/${name}.crt`);
@@ -105,7 +111,7 @@ function seedUrls(): string[] {
 	const lencr = ['r3', 'r4', 'e1', 'e2', 'ye', 'yr'];
 	for (let n = 10; n <= 14; n++) lencr.push(`r${n}`);
 	for (let n = 5; n <= 9; n++) lencr.push(`e${n}`);
-	for (let n = 1; n <= 6; n++) lencr.push(`ye${n}`, `yr${n}`);
+	for (let n = 1; n <= 3; n++) lencr.push(`ye${n}`, `yr${n}`);
 	for (const name of lencr) {
 		urls.push(`http://${name}.i.lencr.org/`);
 	}
@@ -116,7 +122,6 @@ function seedUrls(): string[] {
 		urls.push(`http://i.pki.goog/${name}.crt`);
 	}
 	urls.push(
-		'http://pki.goog/gsr2/GTSGIAG3.crt',
 		'http://pki.goog/repo/certs/gts1c3.der',
 		'http://pki.goog/repo/certs/gts1d4.der',
 		'http://pki.goog/repo/certs/gts1p5.der'
@@ -128,7 +133,6 @@ function seedUrls(): string[] {
 			urls.push(`http://crt.${gen}${n}.amazontrust.com/${gen}${n}.cer`);
 		}
 	}
-	urls.push('http://crt.sca1b.amazontrust.com/sca1b.crt');
 
 	// --- GoDaddy / Starfield ---
 	urls.push(
@@ -140,21 +144,20 @@ function seedUrls(): string[] {
 	for (const name of [
 		'gsrsadvsslca2018',
 		'gsrsaovsslca2018',
-		'gsrsaevsslca2018',
 		'gsgccr3dvtlsca2020',
-		'gsgccr3ovtlsca2020',
-		'gsgccr3evtlsca2020',
 		'gsalphasha2g2r1',
-		'gsalphasha2g4',
 		'gsdomainvalsha2g2r1',
 		'gsorganizationvalsha2g2r1',
-		'gsorganizationvalsha2g3r3',
 		'gsextendvalsha2g3r3'
 	]) {
 		urls.push(`http://secure.globalsign.com/cacert/${name}.crt`);
 	}
-	for (let year = 2020; year <= 2026; year++) {
+	// Atlas issuing CAs are published per quarter — probe 2022 up to the current quarter
+	const now = new Date();
+	const currentQuarter = Math.floor(now.getMonth() / 3) + 1;
+	for (let year = 2022; year <= now.getFullYear(); year++) {
 		for (let quarter = 1; quarter <= 4; quarter++) {
+			if (year === now.getFullYear() && quarter > currentQuarter) break;
 			for (const kind of ['dv', 'ov']) {
 				urls.push(
 					`http://secure.globalsign.com/cacert/gsatlasr3${kind}tlsca${year}q${quarter}.crt`
@@ -171,9 +174,6 @@ function seedUrls(): string[] {
 	);
 
 	// --- Microsoft (Azure / microsoft.com issuing CAs) ---
-	for (const n of ['1', '2', '4', '5']) {
-		urls.push(encodeURI(`http://www.microsoft.com/pki/mscorp/Microsoft IT TLS CA ${n}.crt`));
-	}
 	for (const n of ['01', '02']) {
 		urls.push(encodeURI(`http://www.microsoft.com/pki/mscorp/Microsoft RSA TLS CA ${n}.crt`));
 	}
@@ -194,13 +194,8 @@ function seedUrls(): string[] {
 		}
 	}
 
-	// --- Certum / SSL.com ---
-	urls.push(
-		'http://repository.certum.pl/dvcasha2.cer',
-		'http://repository.certum.pl/ovcasha2.cer',
-		'http://cert.ssl.com/SSLcom-SubCA-SSL-RSA-4096-R1.crt',
-		'http://cert.ssl.com/SSLcom-SubCA-EV-SSL-RSA-4096-R3.crt'
-	);
+	// --- Certum ---
+	urls.push('http://repository.certum.pl/dvcasha2.cer', 'http://repository.certum.pl/ovcasha2.cer');
 
 	return [...new Set(urls)];
 }
@@ -274,53 +269,53 @@ function getCN(cert: x509.X509Certificate): string {
 	return cert.subjectName.getField('CN')[0] ?? cert.subject;
 }
 
-const found = new Map<string, x509.X509Certificate[]>();
-const failed: string[] = [];
-const visited = new Set<string>();
+async function generate(): Promise<void> {
+	const found = new Map<string, x509.X509Certificate[]>();
+	const failed: string[] = [];
+	const visited = new Set<string>([...DEAD_DISCOVERED].map((u) => u.toLowerCase()));
 
-let round = seedUrls();
-for (let depth = 0; depth < MAX_ROUNDS && round.length; depth++) {
-	for (const url of round) visited.add(url.toLowerCase());
-	const discovered = new Set<string>();
-	await runPool(round, async (url) => {
-		const buf = await fetchBuffer(url);
-		const certs = buf ? parseAnyCertificates(buf).filter(isWantedCa) : [];
-		if (!certs.length) {
-			failed.push(url);
+	let round = seedUrls();
+	for (let depth = 0; depth < MAX_ROUNDS && round.length; depth++) {
+		for (const url of round) visited.add(url.toLowerCase());
+		const discovered = new Set<string>();
+		await runPool(round, async (url) => {
+			const buf = await fetchBuffer(url);
+			const certs = buf ? parseAnyCertificates(buf).filter(isWantedCa) : [];
+			if (!certs.length) {
+				failed.push(url);
+				return;
+			}
+			found.set(url, certs);
+			for (const cert of certs) {
+				for (const aia of caIssuerUrlsOf(cert)) {
+					if (!visited.has(aia.toLowerCase())) discovered.add(aia);
+				}
+			}
+		});
+		console.log(`round ${depth + 1}: ${round.length} URLs → ${found.size} total hits`);
+		round = [...discovered];
+	}
+
+	if (found.size === 0) {
+		if (existsSync(OUT_FILE)) {
+			console.warn('no certificates fetched (offline?) — keeping the existing embedded-certs.ts');
 			return;
 		}
-		found.set(url, certs);
-		for (const cert of certs) {
-			for (const aia of caIssuerUrlsOf(cert)) {
-				if (!visited.has(aia.toLowerCase())) discovered.add(aia);
-			}
-		}
-	});
-	console.log(`round ${depth + 1}: ${round.length} URLs → ${found.size} total hits`);
-	round = [...discovered];
-}
-
-if (found.size === 0) {
-	if (existsSync(OUT_FILE)) {
-		console.warn('no certificates fetched (offline?) — keeping the existing embedded-certs.ts');
-		process.exit(0);
+		throw new Error('no certificates fetched and no existing embedded-certs.ts');
 	}
-	console.error('no certificates fetched and no existing embedded-certs.ts — aborting');
-	process.exit(1);
-}
 
-const entries = [...found.entries()].sort(([a], [b]) => a.localeCompare(b));
-const certCount = entries.reduce((n, [, certs]) => n + certs.length, 0);
-const date = (d: Date) => d.toISOString().slice(0, 10);
+	const entries = [...found.entries()].sort(([a], [b]) => a.localeCompare(b));
+	const certCount = entries.reduce((n, [, certs]) => n + certs.length, 0);
+	const date = (d: Date) => d.toISOString().slice(0, 10);
 
-let body = '';
-for (const [url, certs] of entries) {
-	const label = certs.map((c) => `${getCN(c)} (${date(c.notBefore)} → ${date(c.notAfter)})`);
-	body += `\t// ${label.join(', ')}\n`;
-	body += `\t'${url}': \`${certs.map((c) => c.toString('pem')).join('\n')}\`,\n`;
-}
+	let body = '';
+	for (const [url, certs] of entries) {
+		const label = certs.map((c) => `${getCN(c)} (${date(c.notBefore)} → ${date(c.notAfter)})`);
+		body += `\t// ${label.join(', ')}\n`;
+		body += `\t'${url}': \`${certs.map((c) => c.toString('pem')).join('\n')}\`,\n`;
+	}
 
-const output = `// AUTO-GENERATED FILE — do not edit by hand.
+	const output = `// AUTO-GENERATED FILE — do not edit by hand.
 // Regenerate with: bun run gen:certs (scripts/generate-embedded-certs.ts)
 // ${entries.length} URLs, ${certCount} certificates.
 
@@ -333,11 +328,24 @@ export const EMBEDDED_CERTS: Record<string, string> = {
 ${body}};
 `;
 
-await Bun.write(OUT_FILE, output);
-Bun.spawnSync(['bun', 'x', 'prettier', '--write', OUT_FILE]);
+	await Bun.write(OUT_FILE, output);
+	Bun.spawnSync(['bun', 'x', 'prettier', '--write', OUT_FILE]);
 
-console.log(`\nwrote ${OUT_FILE}: ${entries.length} URLs, ${certCount} certificates`);
-if (failed.length) {
-	console.log(`\nunreachable/unparsable URLs (${failed.length}):`);
-	for (const url of failed.sort()) console.log(`  ${url}`);
+	console.log(`\nwrote ${OUT_FILE}: ${entries.length} URLs, ${certCount} certificates`);
+	if (failed.length) {
+		console.log(`\nunreachable/unparsable URLs (${failed.length}):`);
+		for (const url of failed.sort()) console.log(`  ${url}`);
+	}
+}
+
+async function isPopulated(): Promise<boolean> {
+	return existsSync(OUT_FILE) && (await Bun.file(OUT_FILE).text()).includes('BEGIN CERTIFICATE');
+}
+
+// Run as CLI (bun run gen:certs, vite build): always refresh.
+// Preloaded by `bun test` (import.meta.main is false): only generate when the
+// gitignored output file is missing/empty — and never call process.exit, which
+// would kill the test runner.
+if (import.meta.main || !(await isPopulated())) {
+	await generate();
 }
